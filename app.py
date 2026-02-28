@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
+import openpyxl # Explicitly import to help the cloud find it
 
-# 1. The Filename (Since it's in the same GitHub folder)
+# 1. The Filename
 FILE_NAME = "GuangFaBank Transactions.xlsx"
 
 st.set_page_config(page_title="Cloud Finance Entry", page_icon="☁️")
@@ -24,33 +24,33 @@ with st.form("transaction_form", clear_on_submit=True):
     remarks = st.text_input("Remarks")
     submit = st.form_submit_button("Save to Cloud Excel")
 
-# 3. Logic for Cloud Saving
 if submit:
     try:
-        # Determine Sheet and Table
         target_sheet = "Sheet2" if "Table2" in table_choice else "Sheet3"
         formatted_date = date_val.strftime("%d-%m-%y")
 
-        # Load the data using Pandas (Better for Cloud)
-        # We read the specific sheet
-        df = pd.read_excel(FILE_NAME, sheet_name=target_sheet)
+        # Load the existing data
+        # We use engine='openpyxl' to be 100% sure it uses the right library
+        df = pd.read_excel(FILE_NAME, sheet_name=target_sheet, engine='openpyxl')
 
-        # Create the new row
-        new_data = {
+        # Create the new row as a Dictionary
+        # This matches the column names automatically
+        new_row = pd.DataFrame([{
             df.columns[0]: formatted_date,
             df.columns[1]: amount,
             df.columns[2]: entity,
             df.columns[3]: remarks
-        }
+        }])
 
-        # Append the new row
-        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+        # Combine old data with new row
+        updated_df = pd.concat([df, new_row], ignore_index=True)
 
-        # Save back to the Excel file on the server
-        with pd.ExcelWriter(FILE_NAME, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            df.to_excel(writer, sheet_name=target_sheet, index=False)
+        # Save back to the file
+        with pd.ExcelWriter(FILE_NAME, engine='openpyxl') as writer:
+            updated_df.to_excel(writer, sheet_name=target_sheet, index=False)
 
-        st.success(f"Added to {target_sheet}! (Note: This is saved on the cloud version only)")
+        st.success(f"Successfully added to {target_sheet}!")
+        st.balloons() # Just for fun!
         
     except Exception as e:
         st.error(f"Error: {e}")

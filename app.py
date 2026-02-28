@@ -29,35 +29,47 @@ with st.form("transaction_form", clear_on_submit=True):
 
 if submit:
     try:
-        # 1. LOAD the existing workbook into memory (Preserving everything)
-        wb = openpyxl.load_workbook(FILE_NAME)
-        
-        if table_choice in wb.sheetnames:
-            sheet = wb[table_choice]
-            
-            # Find the first empty row in Column A
 # 1. LOAD the existing workbook
         wb = openpyxl.load_workbook(FILE_NAME)
         
         if table_choice in wb.sheetnames:
             sheet = wb[table_choice]
             
-            # --- ROBUST ROW FINDER ---
-            # Start at row 1 (or 2 if you have headers)
+            # Find the first truly empty row
             row_to_fill = 1
-            
-            # Keep moving down until we find a cell in Column A that is None (empty)
             while sheet.cell(row=row_to_fill, column=1).value is not None:
                 row_to_fill += 1
+
+            # --- TABLE EXPANSION LOGIC ---
+            # Define the table name based on your selection
+            target_table_name = "Table2" if table_choice == "Sheet2" else "Table3"
             
-            # Now 'row_to_fill' is the first truly empty row
-            # -------------------------
+            # Find the table object within the sheet
+            if target_table_name in sheet.tables:
+                table = sheet.tables[target_table_name]
+                
+                # Get the current range (e.g., 'A1:D10')
+                current_ref = table.ref 
+                # Split it to get the start (A1) and end column (D)
+                start_part, end_part = current_ref.split(':')
+                
+                # Create a new range ending at our new row (e.g., 'A1:D11')
+                # We keep the column (D) and just change the number to row_to_fill
+                import re
+                end_column = re.sub(r'\d+', '', end_part) # Extracts "D"
+                new_ref = f"{start_part}:{end_column}{row_to_fill}"
+                
+                # Update the table boundary
+                table.ref = new_ref
+            # -----------------------------
 
             # Insert Data
             sheet.cell(row=row_to_fill, column=1).value = date_val.strftime("%d-%m-%y")
             sheet.cell(row=row_to_fill, column=2).value = amount
             sheet.cell(row=row_to_fill, column=3).value = entity
             sheet.cell(row=row_to_fill, column=4).value = remarks
+            
+            # ... (Rest of your Save & Sync code)
             
             
             # Save the workbook to a temporary "buffer"
@@ -92,4 +104,5 @@ if submit:
 
     except Exception as e:
         st.error(f"Error: {e}")
+
 

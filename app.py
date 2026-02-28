@@ -36,13 +36,29 @@ if submit:
             sheet = wb[table_choice]
             
             # Find the first empty row in Column A
-            new_row = sheet.max_row + 1
+# 1. LOAD the existing workbook
+        wb = openpyxl.load_workbook(FILE_NAME)
+        
+        if table_choice in wb.sheetnames:
+            sheet = wb[table_choice]
             
+            # --- ROBUST ROW FINDER ---
+            # Start at row 1 (or 2 if you have headers)
+            row_to_fill = 1
+            
+            # Keep moving down until we find a cell in Column A that is None (empty)
+            while sheet.cell(row=row_to_fill, column=1).value is not None:
+                row_to_fill += 1
+            
+            # Now 'row_to_fill' is the first truly empty row
+            # -------------------------
+
             # Insert Data
-            sheet.cell(row=new_row, column=1).value = date_val.strftime("%d-%m-%y")
-            sheet.cell(row=new_row, column=2).value = amount
-            sheet.cell(row=new_row, column=3).value = entity
-            sheet.cell(row=new_row, column=4).value = remarks
+            sheet.cell(row=row_to_fill, column=1).value = date_val.strftime("%d-%m-%y")
+            sheet.cell(row=row_to_fill, column=2).value = amount
+            sheet.cell(row=row_to_fill, column=3).value = entity
+            sheet.cell(row=row_to_fill, column=4).value = remarks
+            
             
             # Save the workbook to a temporary "buffer"
             buffer = io.BytesIO()
@@ -76,3 +92,4 @@ if submit:
 
     except Exception as e:
         st.error(f"Error: {e}")
+
